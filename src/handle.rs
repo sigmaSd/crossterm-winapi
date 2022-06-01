@@ -10,7 +10,7 @@ use winapi::um::{
     fileapi::{CreateFileW, OPEN_EXISTING},
     handleapi::{CloseHandle, INVALID_HANDLE_VALUE},
     processenv::GetStdHandle,
-    winbase::{STD_INPUT_HANDLE, STD_OUTPUT_HANDLE},
+    winbase::{STD_ERROR_HANDLE, STD_INPUT_HANDLE, STD_OUTPUT_HANDLE},
     winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE, GENERIC_READ, GENERIC_WRITE, HANDLE},
 };
 
@@ -24,6 +24,8 @@ use super::handle_result;
 pub enum HandleType {
     /// The process' standard output.
     OutputHandle,
+    /// The process' standard error.
+    ErrorHandle,
     /// The process' standard input.
     InputHandle,
     /// The process' active console screen buffer, `CONOUT$`.
@@ -88,6 +90,7 @@ impl Handle {
     pub fn new(handle: HandleType) -> Result<Handle> {
         match handle {
             HandleType::OutputHandle => Handle::output_handle(),
+            HandleType::ErrorHandle => Handle::error_handle(),
             HandleType::InputHandle => Handle::input_handle(),
             HandleType::CurrentOutputHandle => Handle::current_out_handle(),
             HandleType::CurrentInputHandle => Handle::current_in_handle(),
@@ -171,6 +174,16 @@ impl Handle {
         Self::std_handle(STD_OUTPUT_HANDLE)
     }
 
+    /// Get the handle of the standard error.
+    ///
+    /// On success this function returns the `HANDLE` to `STD_ERROR_HANDLE`.
+    ///
+    /// This wraps [`GetStdHandle`](https://docs.microsoft.com/en-us/windows/console/getstdhandle)
+    /// called with `STD_ERROR_HANDLE`.
+    pub fn error_handle() -> Result<Handle> {
+        Self::std_handle(STD_ERROR_HANDLE)
+    }
+
     /// Get the handle of the input screen buffer.
     ///
     /// On success this function returns the `HANDLE` to `STD_INPUT_HANDLE`.
@@ -212,6 +225,7 @@ mod tests {
     #[test]
     fn test_get_handle() {
         assert!(Handle::new(HandleType::OutputHandle).is_ok());
+        assert!(Handle::new(HandleType::ErrorHandle).is_ok());
         assert!(Handle::new(HandleType::InputHandle).is_ok());
         assert!(Handle::new(HandleType::CurrentOutputHandle).is_ok());
         assert!(Handle::new(HandleType::CurrentInputHandle).is_ok());
